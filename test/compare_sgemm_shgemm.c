@@ -54,8 +54,8 @@ main (int argc, char *argv[])
     float *A = (float *)malloc_safe(m * k * sizeof(FLOAT));
     float *B = (float *)malloc_safe(k * n * sizeof(FLOAT));
     float *C = (float *)malloc_safe(m * n * sizeof(FLOAT));
-    _Float16 *AA = (_Float16 *)malloc_safe(m * k * sizeof(_Float16));
-    _Float16 *BB = (_Float16 *)malloc_safe(k * n * sizeof(_Float16));
+    hfloat16 *AA = (hfloat16 *)malloc_safe(m * k * sizeof(hfloat16));
+    hfloat16 *BB = (hfloat16 *)malloc_safe(k * n * sizeof(hfloat16));
     float *DD = (float *)malloc_safe(m * n * sizeof(FLOAT));
     float *CC = (float *)malloc_safe(m * n * sizeof(FLOAT));
     if ((A == NULL) || (B == NULL) || (C == NULL) || (AA == NULL) || (BB == NULL) ||
@@ -67,7 +67,7 @@ main (int argc, char *argv[])
       for (i = 0; i < k; i++)
       {
         A[j * k + i] = ((FLOAT) rand () / (FLOAT) RAND_MAX) + 0.5;
-        AA[j * k + i] = (_Float16) A[j * k + i];
+        AA[j * k + i] = float_to_half(A[j * k + i]);
       }
     }
     for (j = 0; j < n; j++)
@@ -75,7 +75,7 @@ main (int argc, char *argv[])
       for (i = 0; i < k; i++)
       {
         B[j * k + i] = ((FLOAT) rand () / (FLOAT) RAND_MAX) + 0.5;
-        BB[j * k + i] = (_Float16) B[j * k + i];
+        BB[j * k + i] = float_to_half(B[j * k + i]);
       }
     }
     for (y = 0; y < 4; y++)
@@ -97,8 +97,8 @@ main (int argc, char *argv[])
 
       SGEMM (&transA, &transB, &m, &n, &k, &alpha, A,
         &m, B, &k, &beta, C, &m);
-      SHGEMM (&transA, &transB, &m, &n, &k, &alpha, (_Float16*) AA,
-        &m, (_Float16*)BB, &k, &beta, CC, &m);
+      SHGEMM (&transA, &transB, &m, &n, &k, &alpha, (hfloat16*) AA,
+        &m, (hfloat16*)BB, &k, &beta, CC, &m);
 
       for (i = 0; i < n; i++)
         for (j = 0; j < m; j++)
@@ -107,19 +107,19 @@ main (int argc, char *argv[])
             if (transA == 'N' && transB == 'N')
             {
               DD[i * m + j] +=
-                (float) AA[l * m + j] * (float)BB[l + k * i];
+                half_to_float(AA[l * m + j]) * half_to_float(BB[l + k * i]);
             } else if (transA == 'T' && transB == 'N')
             {
               DD[i * m + j] +=
-                (float)AA[k * j + l] * (float)BB[l + k * i];
+                half_to_float(AA[k * j + l]) * half_to_float(BB[l + k * i]);
             } else if (transA == 'N' && transB == 'T')
             {
               DD[i * m + j] +=
-                (float)AA[l * m + j] * (float)BB[i + l * n];
+                half_to_float(AA[l * m + j]) * half_to_float(BB[i + l * n]);
             } else if (transA == 'T' && transB == 'T')
             {
               DD[i * m + j] +=
-                (float)AA[k * j + l] * (float)BB[i + l * n];
+                half_to_float(AA[k * j + l]) * half_to_float(BB[i + l * n]);
             }
           if (!is_close(CC[i * m + j], C[i * m + j], 0.01, 0.001)) {
 #ifdef DEBUG
@@ -159,8 +159,8 @@ main (int argc, char *argv[])
     float *A = (float *)malloc_safe(m * k * sizeof(FLOAT));
     float *B = (float *)malloc_safe(k * n * sizeof(FLOAT));
     float *C = (float *)malloc_safe(m * n * sizeof(FLOAT));
-    _Float16 *AA = (_Float16 *)malloc_safe(m * k * sizeof(_Float16));
-    _Float16 *BB = (_Float16 *)malloc_safe(k * n * sizeof(_Float16));
+    hfloat16 *AA = (hfloat16 *)malloc_safe(m * k * sizeof(hfloat16));
+    hfloat16 *BB = (hfloat16 *)malloc_safe(k * n * sizeof(hfloat16));
     float *CC = (float *)malloc_safe(m * n * sizeof(FLOAT));
     if ((A == NULL) || (B == NULL) || (C == NULL) || (AA == NULL) || (BB == NULL) ||
        (CC == NULL))
@@ -171,7 +171,7 @@ main (int argc, char *argv[])
       for (i = 0; i < k; i++)
       {
         A[j * k + i] = ((FLOAT) rand () / (FLOAT) RAND_MAX) + 0.5;
-        AA[j * k + i] = (_Float16) A[j * k + i];
+        AA[j * k + i] = float_to_half(A[j * k + i]);
       }
     }
     for (j = 0; j < n; j++)
@@ -179,7 +179,7 @@ main (int argc, char *argv[])
       for (i = 0; i < k; i++)
       {
         B[j * k + i] = ((FLOAT) rand () / (FLOAT) RAND_MAX) + 0.5;
-        BB[j * k + i] = (_Float16) B[j * k + i];
+        BB[j * k + i] = float_to_half(B[j * k + i]);
       }
     }
 
@@ -201,8 +201,8 @@ main (int argc, char *argv[])
 
       SGEMM (&transA, &transB, &m, &n, &k, &alpha, A,
         &m, B, &k, &beta, C, &m);
-      SHGEMM (&transA, &transB, &m, &n, &k, &alpha, (_Float16*) AA,
-        &m, (_Float16*)BB, &k, &beta, CC, &m);
+      SHGEMM (&transA, &transB, &m, &n, &k, &alpha, (hfloat16*) AA,
+        &m, (hfloat16*)BB, &k, &beta, CC, &m);
 
       for (i = 0; i < n; i++)
         for (j = 0; j < m; j++)
