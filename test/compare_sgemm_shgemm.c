@@ -26,6 +26,7 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *****************************************************************************/
 #include <stdio.h>
 #include <stdint.h>
+#include <math.h>
 #include "../common.h"
 
 #include "test_helpers.h"
@@ -33,6 +34,34 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define SGEMM   BLASFUNC(sgemm)
 #define SHGEMM   BLASFUNC(shgemm)
 #define SHGEMM_LARGEST  256
+
+static hfloat16 f2h(float f)
+{
+  if (f != f) return (hfloat16)0x7e00u;
+  if (f == 0.0f) return 0;
+  unsigned s = (f < 0.0f);
+  f = s ? -f : f;
+  int e;
+  float m = frexpf(f, &e);
+  e += 14;
+  if (e <= 0) return (hfloat16)(s << 15);
+  if (e >= 31) return (hfloat16)((s << 15) | 0x7c00u);
+  unsigned frac = (unsigned)((m * 2.0f - 1.0f) * 1024.0f);
+  return (hfloat16)((s << 15) | ((unsigned)e << 10) | (frac & 0x3ffu));
+}
+
+static float h2f(hfloat16 h)
+{
+  unsigned x = h;
+  unsigned s = (x >> 15) & 1u;
+  unsigned e = (x >> 10) & 0x1fu;
+  unsigned f = x & 0x3ffu;
+  float v;
+  if (e == 0) v = ldexpf((float)f, -24);
+  else if (e == 31) v = f ? (float)NAN : (float)INFINITY;
+  else v = ldexpf((float)(1024u + f), (int)e - 25);
+  return s ? -v : v;
+}
 
 int
 main (int argc, char *argv[])
@@ -67,7 +96,7 @@ main (int argc, char *argv[])
       for (i = 0; i < k; i++)
       {
         A[j * k + i] = ((FLOAT) rand () / (FLOAT) RAND_MAX) + 0.5;
-        AA[j * k + i] = float_to_half(A[j * k + i]);
+        AA[j * k + i] = f2h(A[j * k + i]);
       }
     }
     for (j = 0; j < n; j++)
@@ -75,7 +104,7 @@ main (int argc, char *argv[])
       for (i = 0; i < k; i++)
       {
         B[j * k + i] = ((FLOAT) rand () / (FLOAT) RAND_MAX) + 0.5;
-        BB[j * k + i] = float_to_half(B[j * k + i]);
+        BB[j * k + i] = f2h(B[j * k + i]);
       }
     }
     for (y = 0; y < 4; y++)
@@ -97,8 +126,8 @@ main (int argc, char *argv[])
 
       SGEMM (&transA, &transB, &m, &n, &k, &alpha, A,
         &m, B, &k, &beta, C, &m);
-      SHGEMM (&transA, &transB, &m, &n, &k, &alpha, (hfloat16*) AA,
-        &m, (hfloat16*)BB, &k, &beta, CC, &m);
+      SHGEMM (&transA, &transB, &m, &n, &k, &alpha, AA,
+        &m, BB, &k, &beta, CC, &m);
 
       for (i = 0; i < n; i++)
         for (j = 0; j < m; j++)
@@ -107,19 +136,19 @@ main (int argc, char *argv[])
             if (transA == 'N' && transB == 'N')
             {
               DD[i * m + j] +=
-                half_to_float(AA[l * m + j]) * half_to_float(BB[l + k * i]);
+                h2f(AA[l * m + j]) * h2f(BB[l + k * i]);
             } else if (transA == 'T' && transB == 'N')
             {
               DD[i * m + j] +=
-                half_to_float(AA[k * j + l]) * half_to_float(BB[l + k * i]);
+                h2f(AA[k * j + l]) * h2f(BB[l + k * i]);
             } else if (transA == 'N' && transB == 'T')
             {
               DD[i * m + j] +=
-                half_to_float(AA[l * m + j]) * half_to_float(BB[i + l * n]);
+                h2f(AA[l * m + j]) * h2f(BB[i + l * n]);
             } else if (transA == 'T' && transB == 'T')
             {
               DD[i * m + j] +=
-                half_to_float(AA[k * j + l]) * half_to_float(BB[i + l * n]);
+                h2f(AA[k * j + l]) * h2f(BB[i + l * n]);
             }
           if (!is_close(CC[i * m + j], C[i * m + j], 0.01, 0.001)) {
 #ifdef DEBUG
@@ -171,7 +200,7 @@ main (int argc, char *argv[])
       for (i = 0; i < k; i++)
       {
         A[j * k + i] = ((FLOAT) rand () / (FLOAT) RAND_MAX) + 0.5;
-        AA[j * k + i] = float_to_half(A[j * k + i]);
+        AA[j * k + i] = f2h(A[j * k + i]);
       }
     }
     for (j = 0; j < n; j++)
@@ -179,7 +208,7 @@ main (int argc, char *argv[])
       for (i = 0; i < k; i++)
       {
         B[j * k + i] = ((FLOAT) rand () / (FLOAT) RAND_MAX) + 0.5;
-        BB[j * k + i] = float_to_half(B[j * k + i]);
+        BB[j * k + i] = f2h(B[j * k + i]);
       }
     }
 
@@ -201,8 +230,8 @@ main (int argc, char *argv[])
 
       SGEMM (&transA, &transB, &m, &n, &k, &alpha, A,
         &m, B, &k, &beta, C, &m);
-      SHGEMM (&transA, &transB, &m, &n, &k, &alpha, (hfloat16*) AA,
-        &m, (hfloat16*)BB, &k, &beta, CC, &m);
+      SHGEMM (&transA, &transB, &m, &n, &k, &alpha, AA,
+        &m, BB, &k, &beta, CC, &m);
 
       for (i = 0; i < n; i++)
         for (j = 0; j < m; j++)
