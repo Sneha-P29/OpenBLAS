@@ -335,7 +335,7 @@ CNAME (BLASLONG m, BLASLONG n, BLASLONG k, FLOAT alpha, IFLOAT * A,
             }
             if (k % 2 == 1) {
                 if (k > 1)
-                l = (k / 2) << 1;
+                    l = (k / 2) << 1;
                 vector short rowA = { AO[l], 0, 0, 0, 0, 0, 0, 0 };
                 vec_t *rowB = (vec_t *) & (BO[(l << 3)]);
                 MMA (&acc0, MERGE_HIGH (rowB[0], vzero), (vec_t) rowA);
@@ -769,18 +769,18 @@ CNAME (BLASLONG m, BLASLONG n, BLASLONG k, FLOAT alpha, IFLOAT * A,
             }
             rowC = (v4sf_t *) &CO[0];
             __builtin_mma_disassemble_acc ((void *)result, &acc0);
-                    rowC[0] += result[0] * alpha;
+            rowC[0] += result[0] * alpha;
             __builtin_mma_disassemble_acc ((void *)result, &acc1);
-                    rowC[1] += result[0] * alpha;
+            rowC[1] += result[0] * alpha;
             __builtin_mma_disassemble_acc ((void *)result, &acc2);
-                    rowC[2] += result[0] * alpha;
+            rowC[2] += result[0] * alpha;
             __builtin_mma_disassemble_acc ((void *)result, &acc3);
-                    rowC[3] += result[0] * alpha;
+            rowC[3] += result[0] * alpha;
             AO += k << 4;
             BO += k;
             CO += 16;
         }
-         /* Loop for m >= 8. */
+        /* Loop for m >= 8. */
         if (m & 8) {
             IFLOAT *BO = B;
             v4sf_t *rowC;
@@ -805,9 +805,9 @@ CNAME (BLASLONG m, BLASLONG n, BLASLONG k, FLOAT alpha, IFLOAT * A,
             }
             rowC = (v4sf_t *) &CO[0];
             __builtin_mma_disassemble_acc ((void *)result, &acc0);
-                    rowC[0] += result[0] * alpha;
+            rowC[0] += result[0] * alpha;
             __builtin_mma_disassemble_acc ((void *)result, &acc1);
-                    rowC[1] += result[0] * alpha;
+            rowC[1] += result[0] * alpha;
             AO += k << 3;
             BO += k;
             CO += 8;
