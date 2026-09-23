@@ -4518,5 +4518,4 @@ Until then, just keep it different than DGEMM_DEFAULT_UNROLL_N to keep copy rout
 #define SHUFPS_39	shufps	$0x39,
 #endif
 
-
 #endif
