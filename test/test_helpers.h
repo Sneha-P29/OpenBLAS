@@ -63,4 +63,29 @@ static bool is_close(float a, float b, float rtol, float atol) {
   return fabs(a - b) <= (atol + rtol*fabs(b));
 }
 
+static inline hfloat16 float_to_half(float f)
+{
+    if (f != f)    return (hfloat16)0x7e00u;
+    if (f == 0.f)  return (hfloat16)0;
+    unsigned s = (f < 0.f); f = fabsf(f);
+    int e; float m = frexpf(f, &e); e += 14;
+    if (e <= 0)    return (hfloat16)(s << 15);
+    if (e >= 31)   return (hfloat16)((s << 15) | 0x7c00u);
+    unsigned frac = (unsigned)((m * 2.f - 1.f) * 1024.f);
+    return (hfloat16)((s << 15) | ((unsigned)e << 10) | (frac & 0x3ffu));
+}
+
+static inline float half_to_float(hfloat16 h)
+{
+    unsigned x = (unsigned)h;
+    unsigned s = (x >> 15) & 1u;
+    unsigned e = (x >> 10) & 0x1fu;
+    unsigned f =  x        & 0x3ffu;
+    float v;
+    if (e == 0)       v = ldexpf((float)f, -24);
+    else if (e == 31) v = (f == 0) ? (float)(1.0/0.0) : (float)(0.0/0.0);
+    else              v = ldexpf((float)(1024u + f), (int)e - 25);
+    return s ? -v : v;
+}
+
 #endif
